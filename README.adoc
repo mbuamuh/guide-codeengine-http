@@ -28,6 +28,13 @@ view it on the https://openliberty.io/guides/{projectid}.html[Open Liberty websi
 
 Learn how to use MicroProfile applications to create serverless functions in IBM Cloud Code Engine.
 
+:hashtag: #
+:win: WINDOWS
+:mac: MAC
+:linux: LINUX
+:system-api: https://systemapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud
+:inventory-api: https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud
+
 // =================================================================================================
 // Introduction
 // =================================================================================================
@@ -222,21 +229,20 @@ To make requests to the `systemapp` and `inventoryapp` serverless applications u
 ibmcloud ce app get --name systemapp --output url
 ibmcloud ce app get --name inventoryapp --output url
 ```
-First, set `systemapp` url and `inventoryap` url as system properties, to ease making requests to them.
-[role='command']
-```
-INVENTORY_HOST=inventoryapp.xxx111.eu-gb.codeengine.appdomain.cloud
-SYSTEM_HOST=systemapp.xxx111.eu-gb.codeengine.appdomain.cloud
-```
+The urls for systemsapp and invetoryapp, which will be returned will be in the format below, whereby you will substitute `xxxxx` and `cloud region`, by the values returned by `ibmcloud ce app get`
+
+* `{system-api}`
+* `{inventory-api}`
+
 Next, execute the `GET` method on `systemapp` to get its container properties.
 [role='command']
 ```
-curl -X GET https://$SYSTEM_HOST/system/properties
+curl -X GET https://{system-api}/system/properties
 ```
 Next, execute the `GET` method on `inventoryapp` to show that no properties from `systemapp` have been added to its inventory list.
 [role='command']
 ```
-curl -X GET https://$INVENTORY_HOST/inventory/systems
+curl -X GET https://{inventory-api}/inventory/systems
 ```
 It returns an empty list
 [source, role="no_copy"]
@@ -246,12 +252,12 @@ It returns an empty list
 Next, add the `systemapp` container properties `java.vendor.url`, and `wlp.install.dir` to the inventory list of `inventoryapp`.
 [role='command']
 ```
-curl -X POST https://$INVENTORY_HOST/inventory/systems/$SYSTEM_HOST -H "Ce-Specversion: 1.0" -H "Ce-Type: java.properties" -H "Ce-Source: io.cloudevents.examples/properties" -H "Ce-Id: properties" -H "Content-Type: application/json" -H "Ce-Subject: resources" -d "[\"java.vendor.url\",\"wlp.install.dir\"]"
+curl -X POST https://{inventory-api}/inventory/systems/{system-api} -H "Ce-Specversion: 1.0" -H "Ce-Type: java.properties" -H "Ce-Source: io.cloudevents.examples/properties" -H "Ce-Id: properties" -H "Content-Type: application/json" -H "Ce-Subject: resources" -d "[\"java.vendor.url\",\"wlp.install.dir\"]"
 ```
 Finally, retrieve the properties added to the `inventoryapp` inventory list:
 [role='command']
 ```
-curl -X GET https://$INVENTORY_HOST/inventory/systems
+curl -X GET https://{inventory-api}/inventory/systems
 ```
 
 // =================================================================================================
