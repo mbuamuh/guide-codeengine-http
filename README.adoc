@@ -1,9 +1,4 @@
-// As you start writing your guide, keep everything between BEGIN and END in the README.adoc,
-// meaning delete anything else that is above or below the BEGIN and END lines inclusively.
-// Also, please delete any instructions that begin with //--** after you read them
-// ----------- BEGIN -----------
-//--** INSTRUCTION: The copyright statement must appear at the top of the file
-// Copyright (c) 2019 IBM Corporation and others.
+// Copyright (c) 2018, 2022 IBM Corporation and others.
 // Licensed under Creative Commons Attribution-NoDerivatives
 // 4.0 International (CC BY-ND 4.0)
 //   https://creativecommons.org/licenses/by-nd/4.0/
@@ -12,30 +7,19 @@
 //     IBM Corporation
 //
 :page-layout: guide-multipane
-//--** INSTRUCTION: The project id is the part of the git repository after the guide- and must be specified
-//--** :projectid: github repo name without the `guide-` prefix
 :projectid: codeengine-http
-//--** INSTRUCTION: Provide an estimate of how long the guide will take to go through.
-:page-duration: 45 minutes
-//--** INSTRUCTION: Provide the date when the guide is published.  Format is YYYY-MM-DD.
-:page-releasedate: 2022-12-12
-//--** INSTRUCTION: Provide a description for the guide index page.
+:page-duration: 20 minutes
+:page-releasedate: 2023-01-10
 :page-description: Learn how to create a system and an inventory serverless applications, using Jakarta Restful Web Services, Open Liberty, Docker and IBM Cloud Code Engine.
 :page-tags: ['MicroProfile', 'Docker', 'Cloud']
 :page-related-guides: ['rest-intro', 'docker']
-//--** INSTRUCTION: Set 'basic', 'microprofile', 'none'
-
-//--** INSTRUCTION: Specify the slug in the website. This must be unique.
 :page-permalink: /guides/{projectid}
-//--** INSTRUCTION: Source the common page elements, clone `git@github.com:OpenLiberty/guides-common.git`.
-:common-includes: ../guides-common/
-//--** INSTRUCTION: Source the image directory to include any images for the guide.
+:common-includes: https://raw.githubusercontent.com/OpenLiberty/guides-common/prod
+:source-highlighter: prettify
 :imagesdir: /img/guide/{codeengine-http}
-//--** INSTRUCTION: Update the SEO title for the guide
 :page-seo-title: Creating serverless functions in IBM Cloud Code Engine using MicroProfile applications
-//--** INSTRUCTION: Update the SEO description for the guide
 :page-seo-description: Find out how to create serverless functions in IBM Cloud Code Engine using MicroProfile applications
-//--** INSTRUCTION: You can't have a new line between the attributes and the title.
+:guide-author: Open Liberty
 = Creating serverless functions in IBM Cloud Code Engine using MicroProfile applications
 
 [.hidden]
@@ -44,16 +28,12 @@ view it on the https://openliberty.io/guides/{projectid}.html[Open Liberty websi
 
 Learn how to use MicroProfile applications to create serverless functions in IBM Cloud Code Engine.
 
+// =================================================================================================
+// Introduction
+// =================================================================================================
+
 == What you'll learn
 
-//--** Write about what the user will learn in a meaningful intro paragraph.
-//--** Follow the intro paragraph with more details of what the user will learn, but still keep it brief.
-//--** See the REST guide at as an exemplar guide.
-//--** https://openliberty.io/guides/rest-intro.html
-//--** https://github.com/OpenLiberty/guide-rest-intro
-
-// EXAMPLE:
-// =============================================================================
 You will learn how to deploy two MicroProfile applications in Open Liberty containers, to IBM Cloud Container Registry and then to Code Engine, to run as serverless functions in IBM Cloud. You will also learn how to send and receive data from the developed serverless functions, using Http as the event source.
 
 === What is Serverless
@@ -98,12 +78,10 @@ To verify that the plugin is installed correctly, run the following command:
 ```
 ibmcloud plugin show code-engine
 ```
-// =============================================================================
 
-
-///////////////////////////
-// Getting started
-///////////////////////////
+// =================================================================================================
+// Getting Started
+// =================================================================================================
 
 [role='command']
 include::{common-includes}/gitclone.adoc[]
@@ -276,62 +254,24 @@ Finally, retrieve the properties added to the `inventoryapp` inventory list:
 curl -X GET https://$INVENTORY_HOST/inventory/systems
 ```
 
+// =================================================================================================
+// Tear Down
+// =================================================================================================
 
-== Testing the application
 
-//--** Show how to test your application.
+== Tearing down the environment
 
-// EXAMPLE:
-// ======================================================================================================
 
-[role="code_command hotspot", subs="quotes"]
-----
-#Create the `TodoIT` class.#
-`finish/src/test/java/it/io/openliberty/guides/todo/TodoIT.java`
-----
-
-TodoIT.java
-[source, Java, linenums, indent=0, role="code_column hide_tags=copyright"]
-----
-include::finish/src/test/java/it/io/openliberty/guides/todolistSample/TodoIT.java[]
-----
-
-* Explain what each [hotspot=13-20]`@Test` test case is testing
-* Explain key methods
-// ======================================================================================================
-
-//--** Include this for info on how to run the tests
-[role='command']
-include::{common-includes}/devmode-test.adoc[]
-
-//--** Including a listing block with test results here
-//--** Show console output of the test results
-
-//--** OPTIONAL: after listing the test results, mention a simple change a user can make/introduce that
-//--** will cause the tests to fail. Be brief and don't give the users all of the instructions.
-//--** At this point, they should be comfortable enough to figure it out on their own.
-
-//--** Include this for info on how to quit development mode
-[role='command']
-include::{common-includes}/devmode-quit.adoc[]
-
+// =================================================================================================
+// finish
+// =================================================================================================
 
 == Great work! You're done!
 
-//--** Briefly summarize what the user achieved in this guide (1-2 sentences).
-EXAMPLE: You have just completed building a simple todo list application using JAXRS and CDI services in Open Liberty.
+You just deployed two microservices to IBM Cloud. You also learned how to use the `kubectl` command to deploy your microservices on a {kube} cluster.
 
-//--** OPTIONAL: briefly state what the user could do next now that they've learned the
-//--** technologies in this guide.
-
-//--** Include the below from the guides-common repo to tell users how they can contribute to the guide
+// Multipane
 include::{common-includes}/attribution.adoc[subs="attributes"]
 
-//--** DO NO CREATE ANYMORE SECTIONS AT THIS POINT
-//--** Related guides will be added in automatically here if you included them in ":page-related-guides"
-// ------------ END ------------
-
-
-
-
-
+// DO NO CREATE ANYMORE SECTIONS AT THIS POINT
+// Related guides will be added in automatically here if you included them in ":page-related-guides"

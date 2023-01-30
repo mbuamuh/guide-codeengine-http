@@ -27,3 +27,14 @@ finish/.project
 finish/guide-codeengine-http-inventory/.factorypath
 finish/guide-codeengine-http-inventory/.project
 finish/guide-codeengine-http-inventory/.settings/.jsdtscope
+start/.project
+*.class
+finish/guide-codeengine-http-inventory/bin/.project
+finish/guide-codeengine-http-inventory/bin/Dockerfile
+finish/guide-codeengine-http-inventory/bin/pom.xml
+finish/guide-codeengine-http-inventory/bin/src/main/liberty/config/server.xml
+*.html
+finish/guide-codeengine-http-inventory/bin/src/main/webapp/WEB-INF/web.xml
+*.MF
+.project
+.asciidoctorconfig.adoc
