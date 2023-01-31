@@ -19,6 +19,13 @@
 :imagesdir: /img/guide/{codeengine-http}
 :page-seo-title: Creating serverless functions in IBM Cloud Code Engine using MicroProfile applications
 :page-seo-description: Find out how to create serverless functions in IBM Cloud Code Engine using MicroProfile applications
+:hashtag: #
+:win: WINDOWS
+:mac: MAC
+:linux: LINUX
+:system-api: https://systemapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud
+:inventory-api: https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud
+:system-properties: {system-api}/system/properties
 :guide-author: Open Liberty
 = Creating serverless functions in IBM Cloud Code Engine using MicroProfile applications
 
@@ -27,13 +34,6 @@ NOTE: This repository contains the guide documentation source. To view the guide
 view it on the https://openliberty.io/guides/{projectid}.html[Open Liberty website].
 
 Learn how to use MicroProfile applications to create serverless functions in IBM Cloud Code Engine.
-
-:hashtag: #
-:win: WINDOWS
-:mac: MAC
-:linux: LINUX
-:system-api: https://systemapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud
-:inventory-api: https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud
 
 // =================================================================================================
 // Introduction
@@ -237,12 +237,12 @@ The urls for systemsapp and invetoryapp, which will be returned will be in the f
 Next, execute the `GET` method on `systemapp` to get its container properties.
 [role='command']
 ```
-curl -X GET https://{system-api}/system/properties
+curl -X GET https://systemapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud
 ```
 Next, execute the `GET` method on `inventoryapp` to show that no properties from `systemapp` have been added to its inventory list.
 [role='command']
 ```
-curl -X GET https://{inventory-api}/inventory/systems
+curl -X GET https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud/inventory/systems
 ```
 It returns an empty list
 [source, role="no_copy"]
@@ -252,20 +252,23 @@ It returns an empty list
 Next, add the `systemapp` container properties `java.vendor.url`, and `wlp.install.dir` to the inventory list of `inventoryapp`.
 [role='command']
 ```
-curl -X POST https://{inventory-api}/inventory/systems/{system-api} -H "Ce-Specversion: 1.0" -H "Ce-Type: java.properties" -H "Ce-Source: io.cloudevents.examples/properties" -H "Ce-Id: properties" -H "Content-Type: application/json" -H "Ce-Subject: resources" -d "[\"java.vendor.url\",\"wlp.install.dir\"]"
+curl -X POST https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud/inventory/systems/systemapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud -H "Ce-Specversion: 1.0" -H "Ce-Type: java.properties" -H "Ce-Source: io.cloudevents.examples/properties" -H "Ce-Id: properties" -H "Content-Type: application/json" -H "Ce-Subject: resources" -d "[\"java.vendor.url\",\"wlp.install.dir\"]"
 ```
 Finally, retrieve the properties added to the `inventoryapp` inventory list:
 [role='command']
 ```
-curl -X GET https://{inventory-api}/inventory/systems
+curl -X GET https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud/inventory/systems
 ```
 
 // =================================================================================================
 // Tear Down
 // =================================================================================================
 
-
 == Tearing down the environment
+
+When you no longer need the serverless applications, you can delete them from IBM Cloud code engine, and all the resources you created in order to deploy the applications.
+
+
 
 
 // =================================================================================================
