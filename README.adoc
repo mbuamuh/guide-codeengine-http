@@ -7,33 +7,35 @@
 //     IBM Corporation
 //
 :page-layout: guide-multipane
-:projectid: codeengine-http
+:projectid: cloud-ibm-codeengine-http
 :page-duration: 20 minutes
 :page-releasedate: 2023-01-10
-:page-description: Learn how to create a system and an inventory serverless applications, using Jakarta Restful Web Services, Open Liberty, Docker and IBM Cloud Code Engine.
+:page-description: Learn how to deploy a system and an inventory microservice, using Open Liberty, Docker and IBM Cloud Code Engine.
 :page-tags: ['MicroProfile', 'Docker', 'Cloud']
 :page-related-guides: ['rest-intro', 'docker']
 :page-permalink: /guides/{projectid}
 :common-includes: https://raw.githubusercontent.com/OpenLiberty/guides-common/prod
 :source-highlighter: prettify
-:imagesdir: /img/guide/{codeengine-http}
-:page-seo-title: Creating serverless functions in IBM Cloud Code Engine using MicroProfile applications
-:page-seo-description: Find out how to create serverless functions in IBM Cloud Code Engine using MicroProfile applications
+:imagesdir: /img/guide/{cloud-ibm-codeengine-http}
+:page-seo-title: Deploying microservices into IBM Cloud Code Engine
+:page-seo-description: Find out how to deploy microservices using IBM Cloud Code Engine
 :hashtag: #
 :win: WINDOWS
 :mac: MAC
 :linux: LINUX
 :system-api: https://systemapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud
 :inventory-api: https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud
-:system-properties: {system-api}/system/properties
+:system-get: curl -X GET {system-api}
+:inventory-get: curl -X GET https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud/inventory/systems
+:inventory-post: curl -X POST https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud/inventory/systems/systemapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud
 :guide-author: Open Liberty
-= Creating serverless functions in IBM Cloud Code Engine using MicroProfile applications
+= Deploying microservices into IBM Cloud Code Engine
 
 [.hidden]
 NOTE: This repository contains the guide documentation source. To view the guide in published form,
 view it on the https://openliberty.io/guides/{projectid}.html[Open Liberty website].
 
-Learn how to use MicroProfile applications to create serverless functions in IBM Cloud Code Engine.
+Learn how to deploy microservices into IBM Cloud Code Engine, so that they run as serverless services.
 
 // =================================================================================================
 // Introduction
@@ -41,16 +43,16 @@ Learn how to use MicroProfile applications to create serverless functions in IBM
 
 == What you'll learn
 
-You will learn how to deploy two MicroProfile applications in Open Liberty containers, to IBM Cloud Container Registry and then to Code Engine, to run as serverless functions in IBM Cloud. You will also learn how to send and receive data from the developed serverless functions, using Http as the event source.
+You will learn how to deploy two microservices in containers, to IBM Cloud Container Registry and then to IBM Cloud Code Engine, to run as serverless functions in IBM Cloud. You will also learn how to send and receive data from the developed serverless functions, using Http as the event source.
 
-=== What is Serverless
+=== What is serverless?
 Serverless is an entire stack of cloud services that can respond to specific events or requests, and scale to zero when no longer in use. With serverless provisioning, management and billing are handled by the cloud provider and invisible to developers. Developers focus on writing code and business logic, and not worry about infrastructure. Infrastructure tasks (for example provisioning, securing, scaling, scheduling, patching etc...), are the responsibilities of the cloud provider. The cloud provider spins up and provisions the required resources on demand when the code executes, and spins them down when execution stops. Developers or their companies do not have to pay for idle capacity. Pricing is based on execution time and resources required. To learn more about serverless, you can read the https://www.ibm.com/cloud/learn/serverless[What is Serverless] document.
 
-=== What is IBM Cloud Code Engine
+=== What is IBM Cloud Code Engine?
 IBM Cloud Code Engine is a fully managed serverless platform, that runs your containerized workloads. This includes running web-apps, microservices, event driven functions, or batch jobs. Code engine can also build container images from your source code. Like any other serverless platform, code engine is designed such that developers can focus on writing code and not on infrastructure.
 
 
-The two MicroProfile applications you will run as IBM Code Engine serverless functions, are called `system` and `inventory`. The `system` application returns JVM system properties of the running container. The `inventory` application queries properties from the `system` application, and adds them to its inventory list. It also queries its inventory list, to return the properties that were queried from the `system` application.
+The two microservices you will run as IBM Cloud Code Engine serverless functions, are called `system` and `inventory`. The `system` microservice returns JVM system properties of the running container. The `inventory` microservice queries properties from the `system` microservice, and adds them to its inventory list. It also queries its inventory list, to return the properties that are queried from the `system` microservice.
 
 // =================================================================================================
 // Prerequisites
@@ -60,9 +62,40 @@ The two MicroProfile applications you will run as IBM Code Engine serverless fun
 
 Before you begin, the following additional tools need to be installed:
 
-* *Docker:* You need containerization software for building containers. IBM Cloud Code Engine supports Docker, so you will use Docker in this guide. For installation instructions, refer to the official https://docs.docker.com/install/[Docker^] documentation.
+* *Docker:* You need a containerization software for building containers. IBM Cloud Code Engine supports Docker, so you will use Docker in this guide. For installation instructions, refer to the official https://docs.docker.com/install/[Docker^] documentation.
 
-* *ibmcloud:* You need the IBM Cloud command-line tool `ibmcloud` to interact with your IBM Cloud account and its services. See the official https://cloud.ibm.com/docs/cli?topic=cli-getting-started[CLI Getting Started^] documentation, on how to install `ibmcloud`. +
+* *IBM Cloud CLI:* You need the IBM Cloud command-line tool `ibmcloud` to interact with your IBM Cloud account and its services. To install the IBM Cloud CLI for your platform, run one of the following commands:
+
++
+
+include::{common-includes}/os-tabs.adoc[]
+
+[.tab_content.windows_section]
+--
+Open command prompt as an administrator and run the following command.
+
+[role=command]
+```
+powershell -command "Set-ExecutionPolicy Unrestricted; iex(New-Object Net.WebClient).DownloadString('https://clis.cloud.ibm.com/install/powershell')"
+```
+--
+
+[.tab_content.mac_section]
+--
+[role=command]
+```
+curl -fsSL https://clis.cloud.ibm.com/install/osx | sh
+```
+--
+
+[.tab_content.linux_section]
+--
+[role=command]
+```
+curl -fsSL https://clis.cloud.ibm.com/install/linux | sh
+```
+--
+
 To verify that the IBM Cloud CLI is installed correctly, run the following command:
 +
 [role=command]
@@ -70,20 +103,34 @@ To verify that the IBM Cloud CLI is installed correctly, run the following comma
 ibmcloud help
 ```
 
-* *ibmcloud cr:* You need the IBM Cloud Container Registry command-line tool plugin to set up your own image namespace in an IBM-hosted, and managed, private registry. You can store and share Docker images with all users in your IBM Cloud account from the registry. Refer to https://cloud.ibm.com/docs/cli?topic=cli-install-devtools-manually#idt-install-container-registry-cli-plugin[Installing IBM Cloud Container Registry CLI plug-in^], for installation instructions on how to install the plugin. +
-To verify that the plugin is installed correctly, run the following command:
+* *IBM Cloud Container Registry plugin CLI:* 
+You need the IBM Cloud Container Registry command-line tool plugin `ibmcloud cr` to set up your own image namespace in an IBM-hosted, and managed, private registry. You will store Docker images of the `system` and `inventory` microservices in a namespace in the private registry. The microservices will be deployed into IBM Cloud Code Engine, from the private registry. To install the IBM Cloud Container Registry plugin CLI on your platform, run the following command:
 +
 [role=command]
 ```
-ibmcloud plugin show container-registry
+ibmcloud plugin install container-registry
 ```
 
-* *ibmcloud ce:* You need the IBM Cloud Code Engine command-line tool plugin to access the Code Engine service in your IBM Cloud account. See the official documentation https://cloud.ibm.com/docs/codeengine?topic=codeengine-install-cli[Installing the Code Engine CLI plug-in^], on how to install the plugin. +
 To verify that the plugin is installed correctly, run the following command:
 +
 [role=command]
 ```
-ibmcloud plugin show code-engine
+ibmcloud plugin show cr
+```
+
+* *IBM Cloud Code Engine plugin CLI:*
+You need the IBM Cloud Code Engine command-line tool plugin `ibmcloud ce` to access the Code Engine service in your IBM Cloud account. To install the IBM Cloud Code Engine plugin CLI on your platform, run the following command: 
++
+[role=command]
+```
+ibmcloud plugin install code-engine
+```
+
+To verify that the plugin is installed correctly, run the following command:
++
+[role=command]
+```
+ibmcloud plugin show ce
 ```
 
 // =================================================================================================
@@ -96,13 +143,13 @@ include::{common-includes}/gitclone.adoc[]
 
 == Granting IBM Cloud Code Engine project access to IBM Cloud Container Registry
 
-Before you run the microprofile applications as serverless functions in IBM Cloud Code engine, you have to create a project, in which the containerized applications will run. To get the containerized applications from your local machine to the project, you have to deploy them to IBM Cloud Container Registry, and grant the created project access to the IBM Cloud Container Registry.
+Before you run the microprofile microservices as serverless functions in IBM Cloud Code engine, you have to create a project, in which the containerized microservices will run. To get the containerized microservices from your local machine to the project, you have to deploy them to IBM Cloud Container Registry, and grant the created project access to the IBM Cloud Container Registry.
 
 
 === Creating an IBM Cloud API Key
 Create an IBM Cloud API Key to be used by Ibm Cloud Code Engine to access images from Ibm Cloud Container Registry. It is recommended to create a different key for this purpose, so that the key is managed separately for its intended resources. Therefore, one can delete or update the key as they like, and will only need to change access for these resources, but will not need to change access to other resources which do not use this key.
 ----
-ibmcloud iam api-key-create guideKey -d "Key to demo the open liberty serverless applications, using code engine" --file guideKey.txt
+ibmcloud iam api-key-create guideKey -d "Key to demo the open liberty serverless microservices, using code engine" --file guideKey.txt
 ----
 The api key will be stored in the `guideKey.txt` file. Save this file in a safe and protected location.
 
@@ -126,23 +173,24 @@ Create an image registry secret, with which IBM Cloud code engine can access IBM
 ibmcloud ce registry create --name guide-registry --server <REGION>.icr.io --username iamapikey --password XXXX
 ----
 
+// =================================================================================================
+// Building and containerizing the microservices
+// =================================================================================================
 
-== Deploying microprofile applications to IBM Cloud Code Engine
-In this section, you will learn how to deploy two microprofile applications in open liberty containers to IBM Cloud code engine. You will build and containerize the system and inventory applications, push them to IBM Cloud container registry, and then deploy them to your IBM Cloud code engine project.
+== Building and containerizing the microservices
 
-=== Building and containerizing the applications
-The first step of deploying to IBM Cloud code engine, is to build you microprofile applications and containerize them.
+The first step of deploying to IBM Cloud code engine, is to build and containerize your microservices.
 
-The starting Java project, which you can find in the `start` directory, is a multi-module Maven project. It is made up of the `system` and `inventory` applications. Each application resides in its own directory, start/guide-codeengine-http-system and start/guide-codeengine-http-inventory. Both of these directories contain a Dockerfile, which is necessary for building the Docker images. If you’re unfamiliar with Dockerfiles, check out the https://openliberty.io/guides/containerize.html[Containerizing microservices^] guide.
+The starting Java project, which you can find in the `start` directory, is a multi-module Maven project. It is made up of the `system` and `inventory` microservices. Each microservice resides in its own directory, start/guide-codeengine-http-system and start/guide-codeengine-http-inventory. Both of these directories contain a Dockerfile, which is necessary for building the Docker images. If you’re unfamiliar with Dockerfiles, check out the https://openliberty.io/guides/containerize.html[Containerizing microservices^] guide.
 
-To build these applications, navigate to the `start` directory and run the following command:
+To build these microservices, navigate to the `start` directory and run the following command:
 
 [role=command]
 ```
 mvn package
 ```
 
-Next, run the `docker build` commands to build the container images for your application:
+Next, run the `docker build` commands to build the container images for your microservice:
 [role='command']
 ```
 docker build -t system:1.0-SNAPSHOT guide-codeengine-http-system/.
@@ -170,7 +218,11 @@ icr.io/appcafe/open-liberty       kernel-slim-java11-openj9-ubi
 
 If you don't see the `system:1.0-SNAPSHOT` and `inventory:1.0-SNAPSHOT` images, then check the Maven build log for any potential errors.
 
-=== Pushing the images to IBM Cloud Container Registry
+// =================================================================================================
+// Pushing the images to IBM Cloud Container Registry
+// =================================================================================================
+
+== Pushing the images to IBM Cloud Container Registry
 Pushing the images to a registry, facilitates their deployment to IBM Cloud code engine.
 
 First, you must login to IBM Cloud container registry.
@@ -178,27 +230,27 @@ First, you must login to IBM Cloud container registry.
 ```
 ibmcloud cr login
 ```
-To ensure that you are targeting the right IBM Cloud container registry region, run the command below. `<YOUR_REGION>` is your cloud region, for example `uk-south`.
+To ensure that you are targeting the right IBM Cloud container registry region, run the command below. `[YOUR_REGION]` is your cloud region, for example `uk-south`.
 [role=command]
 ```
-ibmcloud cr region-set <YOUR_REGION>
+ibmcloud cr region-set [YOUR_REGION]
 ```
 Next, create a namespace for your docker images:
 [role=command]
 ```
 ibmcloud cr namespace-add guide-namespace
 ```
-Next, choose repositories and tags, by which you can identify the images. `<REGION>` is your country, for example `uk`.
+Next, choose repositories and tags, by which you can identify the images. `[REGION]` is your country, for example `uk`.
 [role='command']
 ```
-docker tag system:1.0-SNAPSHOT <REGION>.icr.io/guide-namespace/system:1.0-SNAPSHOT
-docker tag inventory:1.0-SNAPSHOT <REGION>.icr.io/guide-namespace/inventory:1.0-SNAPSHOT
+docker tag system:1.0-SNAPSHOT [REGION].icr.io/guide-namespace/system:1.0-SNAPSHOT
+docker tag inventory:1.0-SNAPSHOT [REGION].icr.io/guide-namespace/inventory:1.0-SNAPSHOT
 ```
 Next, push the images to your private registry:
 [role='command']
 ```
-docker push <REGION>.icr.io/guide-namespace/system:1.0-SNAPSHOT
-docker push <REGION>.icr.io/guide-namespace/inventory:1.0-SNAPSHOT
+docker push [REGION].icr.io/guide-namespace/system:1.0-SNAPSHOT
+docker push [REGION].icr.io/guide-namespace/inventory:1.0-SNAPSHOT
 ```
 Finally, verify that your images are in your private registry:
 [role=command]
@@ -206,24 +258,29 @@ Finally, verify that your images are in your private registry:
 ibmcloud cr image-list
 ```
 
-=== Creating serverless applications in IBM Cloud Code Engine
-This is the final step of deploying your containerized applications to IBM Cloud code engine.
+// =================================================================================================
+// Deploying the microservices
+// =================================================================================================
 
-Change to the project in IBM Cloud code engine, in which you want to create your serverless applications:
+== Deploying the microservices in IBM Cloud Code Engine
+Now that your container images are in the IBM Cloud container registry, deploy them to IBM Cloud code engine.
+
+Change to the project in IBM Cloud code engine, in which you want to create your serverless microservices:
 [role=command]
 ```
 ibmcloud ce project select -n guide-project
 ```
 
-Create serverless applications in IBM Cloud code engine from your images.
+Create serverless microservices in IBM Cloud code engine from your images.
 [role='command']
 ```
 ibmcloud ce app create --name systemapp --image uk.icr.io/guide-namespace/system:1.0-SNAPSHOT --registry-secret guide-registry --port 9080
 ibmcloud ce app create --name inventoryapp --image uk.icr.io/guide-namespace/inventory:1.0-SNAPSHOT --registry-secret guide-registry --port 9080
 ```
 
-=== Making requests to the serverless applications
-To make requests to the `systemapp` and `inventoryapp` serverless applications using `curl`, you have to get their urls.
+=== Finding the microservice's url
+
+To make requests to the `systemapp` and `inventoryapp` serverless microservices, you have to get their urls.
 [role='command']
 ```
 ibmcloud ce app get --name systemapp --output url
@@ -234,16 +291,18 @@ The urls for systemsapp and invetoryapp, which will be returned will be in the f
 * `{system-api}`
 * `{inventory-api}`
 
-Next, execute the `GET` method on `systemapp` to get its container properties.
+=== Making requests to the serverless microservices
+
+Execute the `GET` method on `systemapp` to get its container properties.
 [role='command']
-```
-curl -X GET https://systemapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud
-```
+---
+$ `{system-get}`
+
 Next, execute the `GET` method on `inventoryapp` to show that no properties from `systemapp` have been added to its inventory list.
 [role='command']
-```
-curl -X GET https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud/inventory/systems
-```
+---
+$ `{inventory-get}`
+
 It returns an empty list
 [source, role="no_copy"]
 ----
@@ -251,14 +310,13 @@ It returns an empty list
 ----
 Next, add the `systemapp` container properties `java.vendor.url`, and `wlp.install.dir` to the inventory list of `inventoryapp`.
 [role='command']
-```
-curl -X POST https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud/inventory/systems/systemapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud -H "Ce-Specversion: 1.0" -H "Ce-Type: java.properties" -H "Ce-Source: io.cloudevents.examples/properties" -H "Ce-Id: properties" -H "Content-Type: application/json" -H "Ce-Subject: resources" -d "[\"java.vendor.url\",\"wlp.install.dir\"]"
-```
+---
+$ `{inventory-post}` -H "Ce-Specversion: 1.0" -H "Ce-Type: java.properties" -H "Ce-Source: io.cloudevents.examples/properties" -H "Ce-Id: properties" -H "Content-Type: application/json" -H "Ce-Subject: resources" -d "[\"java.vendor.url\",\"wlp.install.dir\"]"
+
 Finally, retrieve the properties added to the `inventoryapp` inventory list:
 [role='command']
-```
-curl -X GET https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud/inventory/systems
-```
+---
+$ `{inventory-get}`
 
 // =================================================================================================
 // Tear Down
@@ -266,7 +324,7 @@ curl -X GET https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cl
 
 == Tearing down the environment
 
-When you no longer need the serverless applications, you can delete them from IBM Cloud code engine, and all the resources you created in order to deploy the applications.
+When you no longer need the serverless microservices, you can delete them from IBM Cloud code engine, and all the resources you created in order to deploy the microservices.
 
 
 
