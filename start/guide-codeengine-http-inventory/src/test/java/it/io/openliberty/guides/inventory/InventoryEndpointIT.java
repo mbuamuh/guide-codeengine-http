@@ -13,13 +13,18 @@
 package it.io.openliberty.guides.inventory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.json.JsonObject;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
+import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -35,21 +40,19 @@ public class InventoryEndpointIT {
 
     private static String invUrl;
     private static String sysUrl;
-    private static String sysKubeService;
     private static Client client;
+    private static String inventoryHostname;
+    private static String systemHostname;
 
-    private Response response;
 
     @BeforeAll
     public static void oneTimeSetup() {
-        String clusterIp = System.getProperty("cluster.ip");
-        String invNodePort = System.getProperty("inventory.node.port");
-        String sysNodePort = System.getProperty("system.node.port");
+        inventoryHostname = System.getProperty("inventory.host");
+        systemHostname = System.getProperty("system.host");
 
-        sysKubeService = System.getProperty("system.kube.service");
 
-        invUrl = "http://" + clusterIp + ":" + invNodePort + "/inventory/systems/";
-        sysUrl = "http://" + clusterIp + ":" + sysNodePort + "/system/properties/";
+        invUrl = "https://" + inventoryHostname + "/inventory/systems/";
+        sysUrl = "https://" + systemHostname + "/system/properties/";
 
         client = ClientBuilder.newBuilder()
                     .hostnameVerifier(new HostnameVerifier() {
@@ -99,13 +102,13 @@ public class InventoryEndpointIT {
         int actual = obj.getInt("total");
         assertEquals(expected, actual,
                 "The inventory should have one entry for the system service:"
-                    + sysKubeService);
+                    + systemHostname);
 
         boolean serviceExists = obj.getJsonArray("systems").getJsonObject(0)
                                     .get("hostname").toString()
-                                    .contains(sysKubeService);
+                                    .contains(systemHostname);
         assertTrue(serviceExists,
-                "A host was registered, but it was not " + sysKubeService);
+                "A host was registered, but it was not " + systemHostname);
 
         response.close();
     }
@@ -129,12 +132,12 @@ public class InventoryEndpointIT {
 
         String osNameFromInventory = jsonFromInventory.getString("os.name");
         String osNameFromSystem = jsonFromSystem.getString("os.name");
-        this.assertProperty("os.name", sysKubeService, osNameFromSystem,
+        this.assertProperty("os.name", systemHostname, osNameFromSystem,
                             osNameFromInventory);
 
         String userNameFromInventory = jsonFromInventory.getString("user.name");
         String userNameFromSystem = jsonFromSystem.getString("user.name");
-        this.assertProperty("user.name", sysKubeService, userNameFromSystem,
+        this.assertProperty("user.name", systemHostname, userNameFromSystem,
                             userNameFromInventory);
 
         invResponse.close();
@@ -153,9 +156,7 @@ public class InventoryEndpointIT {
 
         String obj = badResponse.readEntity(String.class);
 
-        boolean isError = obj.contains("error");
-        assertTrue(isError,
-                "badhostname is not a valid host but it didn't raise an error");
+        assertEquals(obj, "", "badhostname is not a valid host, but it didn't return an empty string");
 
         response.close();
         badResponse.close();
@@ -180,16 +181,17 @@ public class InventoryEndpointIT {
             + "the inventory service for " + hostname);
     }
 
-    // Makes a simple GET request to inventory/localhost.
+    // Makes a simple POST request to inventory/system, querying some properties from the system service
     private void visitSystemService() {
         Response response = this.getResponse(sysUrl);
         this.assertResponse(sysUrl, response);
         response.close();
 
+        List<String> dataQuery = new ArrayList<String>();
+        dataQuery.add("java.vendor.url");
+        dataQuery.add("awt.toolkit");
         Response targetResponse = client
-            .target(invUrl + sysKubeService)
-            .request()
-            .get();
+            .target(invUrl + systemHostname).request(MediaType.APPLICATION_JSON_TYPE).post(Entity.json(dataQuery));
 
         targetResponse.close();
     }

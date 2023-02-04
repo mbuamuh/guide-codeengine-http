@@ -30,17 +30,16 @@ import org.junit.jupiter.api.Test;
 
 public class SystemEndpointIT {
 
-    private static String clusterUrl;
+    private static String systemUrl;
 
     private Client client;
     private Response response;
 
     @BeforeAll
     public static void oneTimeSetup() {
-        String clusterIp = System.getProperty("cluster.ip");
-        String nodePort = System.getProperty("system.node.port");
-
-        clusterUrl = "http://" + clusterIp + ":" + nodePort + "/system/properties/";
+        String systemHostname = System.getProperty("system.host");
+       
+        systemUrl = "https://" + systemHostname + "/system/properties/";
     }
 
     @BeforeEach
@@ -63,9 +62,9 @@ public class SystemEndpointIT {
     @Test
     @Order(1)
     public void testPodNameNotNull() {
-        response = this.getResponse(clusterUrl);
-        this.assertResponse(clusterUrl, response);
-        String greeting = response.getHeaderString("X-Pod-Name");
+        response = this.getResponse(systemUrl);
+        this.assertResponse(systemUrl, response);
+        String greeting = response.getHeaderString("server");
 
         assertNotNull(greeting,
             "Container name should not be null but it was."
@@ -77,11 +76,11 @@ public class SystemEndpointIT {
     public void testGetProperties() {
         Client client = ClientBuilder.newClient();
 
-        WebTarget target = client.target(clusterUrl);
+        WebTarget target = client.target(systemUrl);
         Response response = target.request().get();
 
         assertEquals(200, response.getStatus(),
-                     "Incorrect response code from " + clusterUrl);
+                     "Incorrect response code from " + systemUrl);
         response.close();
     }
 
@@ -89,7 +88,7 @@ public class SystemEndpointIT {
         return client
             .target(url)
             .request()
-            .header("Host", System.getProperty("host-header"))
+            .header("Host", System.getProperty("system.host"))
             .get();
     }
 
