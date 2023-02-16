@@ -1,4 +1,4 @@
-// Copyright (c) 2018, 2022 IBM Corporation and others.
+// Copyright (c) 2023 IBM Corporation and others.
 // Licensed under Creative Commons Attribution-NoDerivatives
 // 4.0 International (CC BY-ND 4.0)
 //   https://creativecommons.org/licenses/by-nd/4.0/
@@ -7,8 +7,8 @@
 //     IBM Corporation
 //
 :page-layout: guide-multipane
-:projectid: cloud-ibm-codeengine-http
-:page-duration: 20 minutes
+:projectid: cloud-ibm-codeengine
+:page-duration: 30 minutes
 :page-releasedate: 2023-01-10
 :page-description: Learn how to deploy a system and an inventory microservice, using Open Liberty, Docker and IBM Cloud Code Engine.
 :page-tags: ['MicroProfile', 'Docker', 'Cloud']
@@ -23,11 +23,11 @@
 :win: WINDOWS
 :mac: MAC
 :linux: LINUX
-:system-api: https://systemapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud
-:inventory-api: https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud
+:system-api: \https://systemapp.[xxxxxx].[REGION].codeengine.appdomain.cloud
+:inventory-api: \https://inventoryapp.[xxxxxx].[REGION].codeengine.appdomain.cloud
 :system-get: curl -X GET {system-api}/system/properties
-:inventory-get: curl -X GET https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud/inventory/systems
-:inventory-post: curl -X POST https://inventoryapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud/inventory/systems/systemapp.[xxxxxx].[cloud region].codeengine.appdomain.cloud
+:inventory-get: curl -X GET https://inventoryapp.[xxxxxx].[REGION].codeengine.appdomain.cloud/inventory/systems
+:inventory-post: curl -X POST https://inventoryapp.[xxxxxx].[REGION].codeengine.appdomain.cloud/inventory/systems/systemapp.[xxxxxx].[REGION].codeengine.appdomain.cloud
 :guide-author: Open Liberty
 = Deploying microservices into IBM Cloud Code Engine
 
@@ -43,7 +43,7 @@ Learn how to deploy microservices into IBM Cloud Code Engine, so that they run a
 
 == What you'll learn
 
-You will learn how to deploy two microservices in containers, to IBM Cloud Container Registry and then to IBM Cloud Code Engine, to run as serverless functions in IBM Cloud. You will also learn how to send and receive data from the developed serverless functions, using Http as the event source.
+You will learn how to deploy two microservices in containers, to https://www.ibm.com/cloud/container-registry[IBM Cloud Container Registry] and then to https://www.ibm.com/cloud/code-engine[IBM Cloud Code Engine], to run as serverless functions in IBM Cloud. You will also learn how to send and receive data from the developed serverless functions, using Http as the event source.
 
 === What is serverless?
 Serverless is an entire stack of cloud services that can respond to specific events or requests, and scale to zero when no longer in use. With serverless provisioning, management and billing are handled by the cloud provider and invisible to developers. Developers focus on writing code and business logic, and not worry about infrastructure. Infrastructure tasks (for example provisioning, securing, scaling, scheduling, patching etc...), are the responsibilities of the cloud provider. The cloud provider spins up and provisions the required resources on demand when the code executes, and spins them down when execution stops. Developers or their companies do not have to pay for idle capacity. Pricing is based on execution time and resources required. To learn more about serverless, you can read the https://www.ibm.com/cloud/learn/serverless[What is Serverless] document.
@@ -66,7 +66,6 @@ Before you begin, the following additional tools need to be installed:
 
 * *IBM Cloud CLI:* You need the IBM Cloud command-line tool `ibmcloud` to interact with your IBM Cloud account and its services. To install the IBM Cloud CLI for your platform, run one of the following commands:
 
-+
 
 include::{common-includes}/os-tabs.adoc[]
 
@@ -97,37 +96,37 @@ curl -fsSL https://clis.cloud.ibm.com/install/linux | sh
 --
 
 To verify that the IBM Cloud CLI is installed correctly, run the following command:
-+
+
 [role=command]
 ```
 ibmcloud help
 ```
 
-* *IBM Cloud Container Registry plugin CLI:* 
-You need the IBM Cloud Container Registry command-line tool plugin `ibmcloud cr` to set up your own image namespace in an IBM-hosted, and managed, private registry. You will store Docker images of the `system` and `inventory` microservices in a namespace in the private registry. The microservices will be deployed into IBM Cloud Code Engine, from the private registry. To install the IBM Cloud Container Registry plugin CLI on your platform, run the following command:
-+
+* *IBM Cloud Container Registry plug-in CLI:* 
+You need the IBM Cloud Container Registry command-line tool plugin `ibmcloud cr` to set up your own image namespace in the IBM Cloud Container registry. Your container images will be pushed to the registry, enabling them to be deployed into IBM Cloud Code Engine. To install the IBM Cloud Container Registry plug-in CLI on your platform, run the following command:
+
 [role=command]
 ```
 ibmcloud plugin install container-registry
 ```
 
-To verify that the plugin is installed correctly, run the following command:
-+
+To verify that the plug-in is installed correctly, run the following command:
+
 [role=command]
 ```
 ibmcloud plugin show cr
 ```
 
-* *IBM Cloud Code Engine plugin CLI:*
-You need the IBM Cloud Code Engine command-line tool plugin `ibmcloud ce` to access the Code Engine service in your IBM Cloud account. To install the IBM Cloud Code Engine plugin CLI on your platform, run the following command: 
-+
+* *IBM Cloud Code Engine plug-in CLI:*
+You need the IBM Cloud Code Engine command-line tool plug-in `ibmcloud ce` to access the Code Engine service in your IBM Cloud account. To install the IBM Cloud Code Engine plug-in CLI on your platform, run the following command: 
+
 [role=command]
 ```
 ibmcloud plugin install code-engine
 ```
 
-To verify that the plugin is installed correctly, run the following command:
-+
+To verify that the plug-in is installed correctly, run the following command:
+
 [role=command]
 ```
 ibmcloud plugin show ce
@@ -143,35 +142,71 @@ include::{common-includes}/gitclone.adoc[]
 
 == Granting IBM Cloud Code Engine project access to IBM Cloud Container Registry
 
-Before you run the microprofile microservices as serverless functions in IBM Cloud Code engine, you have to create a project, in which the containerized microservices will run. To get the containerized microservices from your local machine to the project, you have to deploy them to IBM Cloud Container Registry, and grant the created project access to the IBM Cloud Container Registry.
+Before you run the microprofile microservices as serverless functions in IBM Cloud Code Engine, you have to create a project, in which the containerized microservices will run. To get the containerized microservices from your local machine to the project, you have to deploy them to IBM Cloud Container Registry, and grant the created project access to the IBM Cloud Container Registry.
 
+=== Configuring IBM Cloud CLI
+Log in to IBM Cloud by using the `ibmcloud` command line. When you are prompted to select a region, for example, choose `us-south`. This allows you to create a free cloud resources, which are limited to specific regions. Note that if you are using a federated user ID, you will have to use the `--sso` flag to get a one-time code for single sign-on.
+
+[role=command]
+```
+ibmcloud login
+```
 
 === Creating an IBM Cloud API Key
-Create an IBM Cloud API Key to be used by Ibm Cloud Code Engine to access images from Ibm Cloud Container Registry. It is recommended to create a different key for this purpose, so that the key is managed separately for its intended resources. Therefore, one can delete or update the key as they like, and will only need to change access for these resources, but will not need to change access to other resources which do not use this key.
-----
-ibmcloud iam api-key-create guideKey -d "Key to demo the open liberty serverless microservices, using code engine" --file guideKey.txt
-----
+Create an IBM Cloud API Key to be used by IBM Cloud Code Engine to access images from IBM Cloud Container Registry. It is recommended to create a different key for this purpose, so that the key is managed separately for its intended resources. Therefore, one can delete or update the key as they like, and will only need to change access for these resources, but will not need to change access to other resources which do not use this key.
+
+[role=command]
+```
+ibmcloud iam api-key-create guideKey -d "Key to demonstrate deploying microservices into IBM Cloud Code Engine" --file guideKey.txt
+```
+
 The api key will be stored in the `guideKey.txt` file. Save this file in a safe and protected location.
+
+=== Creating a resource group
+Use the following command to create a resource group `guide-resource-group`, to which your Cloud resources for this demo will belong:
+
+[role=command]
+```
+ibmcloud resource group-create guide-resource-group
+```
+
+=== Changing to your resource group
+Use the following command to change to your resource group `guide-resource-group`:
+
+[role=command]
+```
+ibmcloud target -g guide-resource-group
+```
 
 === Creating an IBM Cloud Code Engine Project
 Create an IBM Cloud Code Engine project to group the serverless functions, and thus be able to manage them and provide access to them.
-----
+
+[role=command]
+```
 ibmcloud ce project create --name guide-project
-----
+```
+
 List code engine projects to check if the `guide-project` has been successfully created.
-----
+
+[role=command]
+```
 ibmcloud ce project list
-----
+```
 
 === Adding IBM Cloud Container Registry access to IBM Cloud Code Engine project
 Change to the `guide-project` code engine project, to work within its context.
-----
+
+[role=command]
+```
 ibmcloud ce project select -n guide-project
-----
-Create an image registry secret, with which IBM Cloud code engine can access IBM Cloud container registry. In the command below, `<REGION>` can be for example `uk`, which is your location, and `XXXX` is the api key stored in the `guideKey.txt` file.
-----
-ibmcloud ce registry create --name guide-registry --server <REGION>.icr.io --username iamapikey --password XXXX
-----
+```
+
+Create an image registry secret, with which IBM Cloud code engine can access IBM Cloud container registry. In the command below, `XXXX` is the api key stored in the `guideKey.txt` file.
+
+[role=command]
+```
+ibmcloud ce registry create --name guide-registry --server us.icr.io --username iamapikey --password XXXX
+```
 
 // =================================================================================================
 // Building and containerizing the microservices
@@ -193,8 +228,8 @@ mvn package
 Next, run the `docker build` commands to build the container images for your microservice:
 [role='command']
 ```
-docker build -t system:1.0-SNAPSHOT guide-codeengine-http-system/.
-docker build -t inventory:1.0-SNAPSHOT guide-codeengine-http-inventory/.
+docker build -t system:1.0-SNAPSHOT system/.
+docker build -t inventory:1.0-SNAPSHOT inventory/.
 ```
 
 The `-t` flag in the `docker build` command allows the Docker image to be labeled (tagged) in the `name[:tag]` format. The tag for an image describes the specific image version. If the optional `[:tag]` tag is not specified, the `latest` tag is created by default.
@@ -230,27 +265,27 @@ First, you must login to IBM Cloud container registry.
 ```
 ibmcloud cr login
 ```
-To ensure that you are targeting the right IBM Cloud container registry region, run the command below. `[YOUR_REGION]` is your cloud region, for example `uk-south`.
+To ensure that you are targeting the right IBM Cloud container registry region, run the command below. `[REGION]` is your cloud region, for example `us-south`.
 [role=command]
 ```
-ibmcloud cr region-set [YOUR_REGION]
+ibmcloud cr region-set [REGION]
 ```
 Next, create a namespace for your docker images:
 [role=command]
 ```
 ibmcloud cr namespace-add guide-namespace
 ```
-Next, choose repositories and tags, by which you can identify the images. `[REGION]` is your country, for example `uk`.
+Next, choose repositories and tags, by which you can identify the images.
 [role='command']
 ```
-docker tag system:1.0-SNAPSHOT [REGION].icr.io/guide-namespace/system:1.0-SNAPSHOT
-docker tag inventory:1.0-SNAPSHOT [REGION].icr.io/guide-namespace/inventory:1.0-SNAPSHOT
+docker tag system:1.0-SNAPSHOT us.icr.io/guide-namespace/system:1.0-SNAPSHOT
+docker tag inventory:1.0-SNAPSHOT us.icr.io/guide-namespace/inventory:1.0-SNAPSHOT
 ```
 Next, push the images to your private registry:
 [role='command']
 ```
-docker push [REGION].icr.io/guide-namespace/system:1.0-SNAPSHOT
-docker push [REGION].icr.io/guide-namespace/inventory:1.0-SNAPSHOT
+docker push us.icr.io/guide-namespace/system:1.0-SNAPSHOT
+docker push us.icr.io/guide-namespace/inventory:1.0-SNAPSHOT
 ```
 Finally, verify that your images are in your private registry:
 [role=command]
@@ -274,8 +309,8 @@ ibmcloud ce project select -n guide-project
 Create serverless microservices in IBM Cloud code engine from your images.
 [role='command']
 ```
-ibmcloud ce app create --name systemapp --image uk.icr.io/guide-namespace/system:1.0-SNAPSHOT --registry-secret guide-registry --port 9080
-ibmcloud ce app create --name inventoryapp --image uk.icr.io/guide-namespace/inventory:1.0-SNAPSHOT --registry-secret guide-registry --port 9080
+ibmcloud ce app create --name systemapp --image us.icr.io/guide-namespace/system:1.0-SNAPSHOT --registry-secret guide-registry --port 9080
+ibmcloud ce app create --name inventoryapp --image us.icr.io/guide-namespace/inventory:1.0-SNAPSHOT --registry-secret guide-registry --port 9080
 ```
 
 === Finding the microservice's url
@@ -384,14 +419,14 @@ Next, build the new version of the container image as `2.0-SNAPSHOT`:
 docker build -t system:2.0-SNAPSHOT system/.
 ```
 
-Since you built a new image, you need to push it to the repository again. In the following `docker` command, remember to replace `uk.icr.io` with your registry and `guide-namespace` with the namespace you created earlier in the guide.
+Since you built a new image, you need to push it to the repository again. In the following `docker` command, remember to replace `us.icr.io` with your registry and `guide-namespace` with the namespace you created earlier in the guide.
 
 // Tagging images
 Tag your container image with the relevant data about your registry.
 
 [role=command]
 ```
-docker tag system:2.0-SNAPSHOT uk.icr.io/guide-namespace/system:2.0-SNAPSHOT
+docker tag system:2.0-SNAPSHOT us.icr.io/guide-namespace/system:2.0-SNAPSHOT
 ```
 
 // Pushing images
@@ -399,14 +434,14 @@ Push your image to the registry.
 
 [role=command]
 ```
-docker push uk.icr.io/guide-namespace/system:2.0-SNAPSHOT
+docker push us.icr.io/guide-namespace/system:2.0-SNAPSHOT
 ```
 
 Update the `systemapp` application on IBM Cloud Code Engine to the new container image that you just pushed to the registry:
 
 [role=command]
 ```
-ibmcloud ce app update --name systemapp --image uk.icr.io/guide-namespace/system:2.0-SNAPSHOT --registry-secret guide-registry --port 9080
+ibmcloud ce app update --name systemapp --image us.icr.io/guide-namespace/system:2.0-SNAPSHOT --registry-secret guide-registry --port 9080
 ```
 
 Get the `systemapp` url:
@@ -438,13 +473,13 @@ Delete the project in which the applications were created in IBM Cloud Code Engi
 ibmcloud ce project delete -n guide-project
 ```
 
-Remove your images from your container registry. Remember to replace `uk.icr.io` to your registry and `guide-namespace` with the namespace you created earlier in the guide.
+Remove your images from your container registry. Remember to replace `us.icr.io` to your registry and `guide-namespace` with the namespace you created earlier in the guide.
 
 [role=command]
 ```
-ibmcloud cr image-rm uk.icr.io/guide-namespace/system:1.0-SNAPSHOT
-ibmcloud cr image-rm uk.icr.io/guide-namespace/system:2.0-SNAPSHOT
-ibmcloud cr image-rm uk.icr.io/guide-namespace/inventory:1.0-SNAPSHOT
+ibmcloud cr image-rm us.icr.io/guide-namespace/system:1.0-SNAPSHOT
+ibmcloud cr image-rm us.icr.io/guide-namespace/system:2.0-SNAPSHOT
+ibmcloud cr image-rm us.icr.io/guide-namespace/inventory:1.0-SNAPSHOT
 ```
 
 Remove the namespace you created in your container registry.
@@ -454,11 +489,11 @@ Remove the namespace you created in your container registry.
 ibmcloud cr namespace-rm guide-namespace
 ```
 
-Log out of your container registry. Remember to replace `uk.icr.io` to your registry.
+Log out of your container registry. Remember to replace `us.icr.io` to your registry.
 
 [role=command]
 ```
-docker logout uk.icr.io
+docker logout us.icr.io
 docker logout registry.ng.bluemix.net
 ```
 
